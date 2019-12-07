@@ -1,5 +1,6 @@
 # m3u8Loader
 Save and parse m3u8, then extract all ts files and build one a file.
+
 Проект "выходного дня" на python 3.7 под windows10.
 Вводная:
 -Имеем тестовый сайт a.test.com, вещающий потоковое видео в открытом доступе.
