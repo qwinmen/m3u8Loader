@@ -18,3 +18,6 @@ Save and parse m3u8, then extract all ts files and build one a file.
 <br>
 Результат:<br>
 -Файл <a href="https://github.com/qwinmen/m3u8Loader/blob/master/script/test.py">\script\test.py</a><br>
+<br>
+Обновление скрипта:<br>
+-Добавлена возможность собирать множество ts файлов в один большой, а конвертировать уже один файл ts, а не множество;
