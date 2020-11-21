@@ -7,7 +7,7 @@ ffmpeg='X://Program//ffmpeg-20191204-d5274f8-win64-static//bin//ffmpeg.exe -i'	#
 
 # константы
 NOTFOUNDERR = 'notFound'
-ENV='dv-h' #ev-h,dv-h
+ENV='cv-h' #ev-h,dv-h,cv-h
 ROOTURL = 'https://'+ENV+ \
 '.test.com/videos/25/21.mp4.urlset/'
 
@@ -19,12 +19,16 @@ HASH='z11z1z1z1z1z1'
 VALIDFROM='1'
 VALIDTO='2'
 HDL='3'
+#CV-H:
+KEYSTR='F12Tp4Ip3459Z-2gI65zP'
 
 def GetEndName(prefix=ENV):
 	if prefix == 'ev-h':
 		return "?validfrom="+VALIDFROM+'&validto='+VALIDTO+'&hdl='+HDL+'&hash='+HASH
 	if prefix == 'dv-h':
 		return "?ttl="+TTL+'&l='+L+'&hash='+HASH
+	if prefix == 'cv-h':
+		return "?"+KEYSTR
 	raise ValueError('Проблема с префиксом. Такого нет.')
 
 def GetMasterFile():
@@ -61,6 +65,24 @@ def LoadTsAsPart(element, indx):
 	print(indx, ' OK');
 	return f'/{indx}.ts|'
 
+def SaveManyFilesToOne(allListCount, startString):
+	src = ''
+	for x in range(allListCount):
+		src += f'{x}.ts+'
+	src = src.strip('+')
+	dst="all.ts"
+	cmd='copy /b %s "%s"' % (src, dst)
+	status = subprocess.call(cmd, shell=True) #copy /b 1.ts+2.ts+3.ts all.ts
+	if status != 0:
+		if status < 0:
+			print("Killed by signal", status)
+		else:
+			print("Command failed with return code - ", status)
+	else:
+		print('Execution of %s passed!\n' % cmd);
+		startString += os.getcwd()+f'\\{dst}';
+		return startString
+
 #Получаем мастер-файл с индексами:
 indexFilename = GetMasterFile()
 print(indexFilename)
@@ -74,11 +96,14 @@ concateFileStr = ' "concat:'
 for indx, item in enumerate(tsList):
 	concateFileStr += os.getcwd()+LoadTsAsPart(item, indx)
 print(concateFileStr.strip('|'))
-
+#Если файлов ts не так много, то формируем список обьединений напрямую, иначе все ts файлы собираем в один и уже его передаем на ffmpeg конвертацию
+if len(tsList) > 300:
+	concateFileStr = SaveManyFilesToOne(len(tsList), ' "concat:')
+	
 # локальная сборка строки из имен .ts файлов:
-# for x in range(15):
-	# concateFileStr += os.getcwd()+f'/{x}.ts|'
-# print(concateFileStr)
+#for x in range(98):
+#	concateFileStr += os.getcwd()+f'/{x}.ts|'
+#print(concateFileStr)
 
 #собираем в один output.mp4 файл:
 subprocess.call(ffmpeg+concateFileStr.strip('|')+'" -c copy output.mp4')
