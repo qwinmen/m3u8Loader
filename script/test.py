@@ -7,7 +7,7 @@ ffmpeg='X://Program//ffmpeg-20191204-d5274f8-win64-static//bin//ffmpeg.exe -i'	#
 
 # константы
 NOTFOUNDERR = 'notFound'
-ENV='cv-h' #ev-h,dv-h,cv-h
+ENV='cv-h' #ev-h,dv-h,cv-h,iv-h
 ROOTURL = 'https://'+ENV+ \
 '.test.com/videos/25/21.mp4.urlset/'
 
@@ -29,6 +29,8 @@ def GetEndName(prefix=ENV):
 		return "?ttl="+TTL+'&l='+L+'&hash='+HASH
 	if prefix == 'cv-h':
 		return "?"+KEYSTR
+	if prefix == 'iv-h':
+		return ""
 	raise ValueError('Проблема с префиксом. Такого нет.')
 
 def GetMasterFile():
