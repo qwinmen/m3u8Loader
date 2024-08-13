@@ -3,38 +3,48 @@ from urllib.request import urlopen	#для url
 import re	#для regexp
 import os	#для получения пути к файлам
 import subprocess	#для запуска ffmpeg.exe
-ffmpeg='X://Program//ffmpeg-20191204-d5274f8-win64-static//bin//ffmpeg.exe -i'	#get from https://www.ffmpeg.org/download.html
+ffmpeg='X://Program//ffmpeg-7.0.2-essentials_build//bin//ffmpeg.exe -i'	#get from https://www.ffmpeg.org/download.html
 
 # константы
 NOTFOUNDERR = 'notFound'
-ENV='cv-h' #ev-h,dv-h,cv-h,iv-h
+ENV='video-cf' #ev-h,dv-h,cv-h,iv-h,cdn77,video-cf
 ROOTURL = 'https://'+ENV+ \
 '.test.com/videos/25/21.mp4.urlset/'
+
+#DV-H:#EV-H:
+HASH='4G%2Bv%2BRWqwSq55R%2Fw596kaF4eSzk%3D'
 
 #DV-H:
 TTL='1'
 L='0'
-HASH='z11z1z1z1z1z1'
 #EV-H:
 VALIDFROM='1'
 VALIDTO='2'
 HDL='3'
+IPA='11.111.247.183'
 #CV-H:
 KEYSTR='F12Tp4Ip3459Z-2gI65zP'
 
 def GetEndName(prefix=ENV):
 	if prefix == 'ev-h':
-		return "?validfrom="+VALIDFROM+'&validto='+VALIDTO+'&hdl='+HDL+'&hash='+HASH
+		return "?validfrom="+VALIDFROM+'&validto='+VALIDTO+'&ipa='+IPA+'&hdl='+HDL+'&hash='+HASH
 	if prefix == 'dv-h':
 		return "?ttl="+TTL+'&l='+L+'&hash='+HASH
 	if prefix == 'cv-h':
 		return "?"+KEYSTR
-	if prefix == 'iv-h':
+	if prefix == 'iv-h' or prefix == 'cdn77' or prefix == 'video-cf':
 		return ""
 	raise ValueError('Проблема с префиксом. Такого нет.')
 
 def GetMasterFile():
-	fileName = ROOTURL+'master.m3u8'+GetEndName()
+    if ENV == 'cdn77':
+		m3uSegment = 'hls.m3u8'
+	elif ENV == 'video-cf':
+		m3uSegment = '_TPL_.av1.mp4.m3u8'
+	else:
+		m3uSegment = 'master.m3u8'
+    
+	fileName = ROOTURL+m3uSegment+GetEndName()
 	print('URL: '+fileName)
 	f = urlopen(fileName)
 	
@@ -42,10 +52,16 @@ def GetMasterFile():
 	myfile = f.read()
 	print(myfile)
 	byteAsString = str(myfile, 'utf-8')
-	if 'index.m3u8' in byteAsString:
-		return 'index.m3u8'
-	else:
-		return NOTFOUNDERR
+    #Возвращаем список m3u8 файлов по доступному разрешению:
+	if ENV == 'cdn77':
+		return re.findall('hls-\w.+\.m3u8', byteAsString)
+	elif ENV == 'video-cf':
+		return re.findall('\w.+\.av1.mp4.m3u8', byteAsString)
+	else:	
+		if 'index-f1-v1-a1.m3u8' in byteAsString:
+			return ['index-f1-v1-a1.m3u8']
+		else:
+			return []
 
 def GetListFromIndex(targetFilename):
 	fileName = ROOTURL+targetFilename+GetEndName() #'index.m3u8'
@@ -54,7 +70,18 @@ def GetListFromIndex(targetFilename):
 	myfile = f.read()
 	print(myfile)
 	byteAsString = str(myfile, 'utf-8')
-	tsParsedArray = re.findall('seg-\w.+\.ts', byteAsString)
+    
+	if ENV == 'cdn77':
+		findRegExpr = 'hls-\w.+\.ts'
+	elif ENV == 'video-cf':
+		findRegExpr = '\w.+\.av1.mp4/seg-\w.+\.m4s'
+		tsFirstParsedArray = re.findall('\d.+\w.+\.av1.mp4/init-\w.+\.mp4', byteAsString)
+		tsParsedArray = re.findall(findRegExpr, byteAsString)
+		return tsFirstParsedArray+tsParsedArray
+	else:
+		findRegExpr = 'seg-\w.+\.ts'
+	
+	tsParsedArray = re.findall(findRegExpr, byteAsString)
 	return tsParsedArray
 
 def LoadTsAsPart(element, indx):
@@ -87,11 +114,18 @@ def SaveManyFilesToOne(allListCount, startString):
 
 #Получаем мастер-файл с индексами:
 indexFilename = GetMasterFile()
-print(indexFilename)
-if indexFilename in NOTFOUNDERR:
+if len(indexFilename) < 1:
 	raise ValueError('Ненайден константный файл.')
+print('Введите номер - Какой файл из доступных скачивать?')
+for indx, item in enumerate(indexFilename):
+	print('[', indx, ']: ', item)
+
+#Какое разрешение видео скачивать? Выбирает пользователь:	
+indexOfMasterfile = int(input())
+print('Скачивается ', indexFilename[indexOfMasterfile])
+
 #Получаем по индексу список .ts файлов:
-tsList = GetListFromIndex(indexFilename)	#example tsList = ['seg-9.ts']
+tsList = GetListFromIndex(indexFilename[indexOfMasterfile])	#example tsList = ['seg-9.ts']
 print('Файлов ts: ', len(tsList))
 #Скачиваем все ts файлы, сборка строки из имен .ts файлов:
 concateFileStr = ' "concat:'
