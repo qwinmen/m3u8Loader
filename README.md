@@ -21,3 +21,7 @@ Save and parse m3u8, then extract all ts files and build one a file.
 <br>
 Обновление скрипта:<br>
 -Добавлена возможность собирать множество ts файлов в один большой, а конвертировать уже один файл ts, а не множество;
+
+Пример работы скрипта:
+![Untitled](https://github.com/user-attachments/assets/e3d9b23d-f17a-4053-bc24-fc30b48af5c4)
+
